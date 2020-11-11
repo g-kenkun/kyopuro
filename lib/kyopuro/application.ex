@@ -8,8 +8,7 @@ defmodule Kyopuro.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      # Starts a worker by calling: Kyopuro.Worker.start_link(arg)
-      # {Kyopuro.Worker, arg}
+      {Finch, name: Kyopuro.Finch}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
