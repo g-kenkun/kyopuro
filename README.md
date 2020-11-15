@@ -13,7 +13,7 @@ The Meeseeks package used in this package uses Rust for Nifs, so you need to set
 ```elixir
 def deps do
   [
-    {:kyopuro, "~> 0.3.0"}
+    {:kyopuro, "~> 0.3.1"}
   ]
 end
 ```
@@ -154,10 +154,10 @@ The `.mapping.json` file contains the contest name, task name and file path. Sin
 
 ## Feature
 
-- Major update
-    - 他のサイト(AOJとか)に対応するに当たって、プラグイン形式でモジュールを差し替えられるようにする
 - Minor update
+    - 他のサイト(AOJとか)に対応するに当たって、プラグイン形式でモジュールを差し替えられるようにする
     - 提出前にテストを実行して、失敗した場合は確認するようにする
-    - バグ修正とか
+- Patch update
+    - バグ修正
     
 当初の予定を実装しきった感があるのでモチベーションは低めですが、Issueとか建ててくれるとモチベーションが上がります。

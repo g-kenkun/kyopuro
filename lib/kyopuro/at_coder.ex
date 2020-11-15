@@ -187,6 +187,7 @@ defmodule Kyopuro.AtCoder do
     |> Floki.find("div.io-style~div.part")
     |> Floki.find("section > pre")
     |> Enum.map(&Floki.text/1)
+    |> Enum.map(&String.replace(&1, "\r\n", "\n"))
     |> Enum.chunk_every(2)
     |> Enum.map(&Enum.zip([:input, :output], &1))
   end
