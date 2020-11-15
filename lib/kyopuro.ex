@@ -4,6 +4,7 @@ defmodule Kyopuro do
   alias Kyopuro.Problem
 
   def generate(problem) do
+    update_submit_mapping(problem)
     generate_module(problem)
     generate_test(problem)
   end
@@ -34,5 +35,17 @@ defmodule Kyopuro do
       )
 
     Mix.Generator.create_file(problem.test_path, contents)
+  end
+
+  defp update_submit_mapping(problem) do
+    unless File.exists?(".mapping.json"), do: File.write!(".mapping.json", Jason.encode!(%{}))
+
+    updated_submit_mapping =
+      File.read!(".mapping.json")
+      |> Jason.decode!()
+      |> DeepMerge.deep_merge(problem.submit_mapping)
+      |> Jason.encode!()
+
+    File.write!(".mapping.json", updated_submit_mapping)
   end
 end

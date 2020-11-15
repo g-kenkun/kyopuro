@@ -8,5 +8,6 @@ defmodule Kyopuro.Problem do
             test_cases: [],
             module_template: nil,
             test_template: nil,
+            submit_mapping: %{},
             binding: []
 end

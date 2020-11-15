@@ -55,5 +55,10 @@
     <orderEntry type="library" name="nimble_parsec" level="project" />
     <orderEntry type="library" name="unicode_set" level="project" />
     <orderEntry type="library" name="benchee_markdown" level="project" />
+    <orderEntry type="library" name="floki" level="project" />
+    <orderEntry type="library" name="html5ever" level="project" />
+    <orderEntry type="library" name="deep_merge" level="project" />
+    <orderEntry type="library" name="earmark" level="project" />
+    <orderEntry type="library" name="inch_ex" level="project" />
   </component>
 </module>

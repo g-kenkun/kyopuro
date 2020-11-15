@@ -4,7 +4,7 @@ defmodule Kyopuro.MixProject do
   def project do
     [
       app: :kyopuro,
-      version: "0.2.0",
+      version: "0.3.0",
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       description: description(),
@@ -40,7 +40,10 @@ defmodule Kyopuro.MixProject do
   defp deps do
     [
       {:finch, "~> 0.5.2"},
-      {:meeseeks, "~> 0.15.1"},
+      {:floki, "~> 0.29.0"},
+      {:html5ever, "~> 0.8.0"},
+      {:deep_merge, "~> 1.0"},
+      {:jason, "~> 1.2"},
       {:ex_doc, "~> 0.23", only: :dev, runtime: false}
     ]
   end

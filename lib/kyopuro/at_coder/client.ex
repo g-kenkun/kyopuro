@@ -1,21 +1,12 @@
 defmodule Kyopuro.AtCoder.Client do
   @moduledoc false
 
-  import Meeseeks.XPath
-
   @type html() :: String.t()
 
   @base_url URI.parse("https://atcoder.jp")
 
   defguard is_transport_error(error) when is_struct(error, Mint.TransportError)
   defguard is_http_error(error) when is_struct(error, Mint.HTTPError)
-
-  def get(path) do
-    url = URI.merge(@base_url, path) |> URI.to_string()
-
-    Finch.build(:get, url)
-    |> Finch.request(Kyopuro.Finch)
-  end
 
   @spec exists_contest?(contest_name :: String.t()) :: true | false
   def exists_contest?(contest_name) do
@@ -50,15 +41,15 @@ defmodule Kyopuro.AtCoder.Client do
     res.body
   end
 
-  @spec get_contest_task_page(path :: String.t()) :: html()
-  def get_contest_task_page(path) do
+  @spec get_task_page(path :: String.t()) :: html()
+  def get_task_page(path) do
     url =
       @base_url
       |> URI.merge(path)
       |> URI.to_string()
 
     res =
-      Finch.build(:get, url)
+      Finch.build(:get, url, [{"cookie", load_cookie()}])
       |> Finch.request(Kyopuro.Finch)
       |> handle_response()
 
@@ -76,13 +67,16 @@ defmodule Kyopuro.AtCoder.Client do
         extract_cookie(res.headers)
         |> store_cookie()
 
+        :ok
+
       false ->
-        Mix.raise(~S(Failed login. Check username and password.))
+        :error
     end
   end
 
-  def submit(contest_name, file_name) do
-    build_submit_request(contest_name, file_name)
+  def submit(contest_name, task_submit_name, file_name) do
+    build_submit_request(contest_name, task_submit_name, file_name)
+    |> Finch.request(Kyopuro.Finch)
   end
 
   defp build_login_request(username, password) do
@@ -96,51 +90,53 @@ defmodule Kyopuro.AtCoder.Client do
       |> Finch.request(Kyopuro.Finch)
       |> handle_response()
 
-    cookie = extract_cookie(res.headers)
+    headers = [
+      {"content-type", "application/x-www-form-urlencoded"},
+      {"cookie", extract_cookie(res.headers)}
+    ]
 
-    headers = [{"content-type", "application/x-www-form-urlencoded;"}, {"cookie", cookie}]
-
-    csrf_token = extract_csrf_token(res.body, ~s(//*[@id="main-container"]/div[1]/div/form/input))
-    username = URI.encode_www_form(username)
-    password = URI.encode_www_form(password)
-
-    body = "username=#{username}&password=#{password}&csrf_token=#{csrf_token}"
+    body =
+      URI.encode_query(%{
+        "username" => username,
+        "password" => password,
+        "csrf_token" => extract_csrf_token(res.body)
+      })
 
     Finch.build(:post, url, headers, body)
   end
 
-  defp build_submit_request(contest_name, file_name) do
+  defp build_submit_request(contest_name, task_submit_name, module_path) do
     url =
       @base_url
       |> URI.merge("/contests/#{contest_name}/submit")
       |> URI.to_string()
 
-    cookie = load_cookie()
-
-    headers = [{"content-type", "application/x-www-form-urlencoded;"}, {"cookie", cookie}]
+    headers = [{"content-type", "application/x-www-form-urlencoded;"}, {"cookie", load_cookie()}]
 
     res =
       Finch.build(:get, url, headers)
       |> Finch.request(Kyopuro.Finch)
       |> handle_response()
 
-    app_base_path = Mix.Project.config() |> Keyword.fetch!(:app) |> to_string()
-
-    file_name = Path.basename(file_name, ".ex") <> ".ex"
-
     source_code =
-      Path.join(["lib", app_base_path, contest_name, file_name])
-      |> File.read!()
-      |> String.replace(~r/(?<=defmodule ).*?(?= do)/, "Main", global: false)
-      |> URI.encode_www_form()
+      case File.read(module_path) do
+        {:error, :enoent} ->
+          Mix.raise(~s(The file "#{module_path}" was not found.))
 
-    csrf_token =
-      extract_csrf_token(res.body, ~s(//*[@id="main-container"]//input[@name="csrf_token"]))
+        {:error, reason} ->
+          Mix.raise(~s(An error occurred while opening the file. Reason: "#{reason}"))
+
+        {:ok, source_code} ->
+          String.replace(source_code, ~r/(?<=defmodule ).*?(?= do)/, "Main", global: false)
+      end
 
     body =
-      "data.TaskScreenName=#{file_name}&data.LanguageId=4021&sourceCode=#{source_code}&csrf_token=#{
-        csrf_token
-      }"
+      URI.encode_query(%{
+        "data.TaskScreenName" => task_submit_name,
+        "data.LanguageId" => "4021",
+        "sourceCode" => source_code,
+        "csrf_token" => extract_csrf_token(res.body)
+      })
 
     Finch.build(:post, url, headers, body)
   end
@@ -156,17 +152,24 @@ defmodule Kyopuro.AtCoder.Client do
   defp handle_response({:ok, res}) when res.status == 302, do: res
   defp handle_response({:ok, res}), do: Mix.raise(~s(Error. status_code: #{res.status}))
 
-  defp extract_csrf_token(body, xpath) do
-    Meeseeks.parse(body)
-    |> Meeseeks.one(xpath(xpath))
-    |> Meeseeks.attr("value")
+  def extract_csrf_token(html) do
+    Floki.parse_document!(html)
+    |> Floki.find("#main-container")
+    |> Floki.find(~s(input[name="csrf_token"]))
+    |> Floki.attribute("value")
+    |> List.first()
   end
 
   defp extract_cookie(headers) do
     headers
-    |> Enum.filter(fn {key, _} -> key == "set-cookie" end)
-    |> Enum.map(&elem(&1, 1))
-    |> Enum.join("; ")
+    |> Enum.flat_map(fn {key, value} ->
+      case String.match?(key, ~r/set-cookie/) do
+        true -> String.split(value, ";", trim: true)
+        _ -> []
+      end
+    end)
+    |> Enum.filter(&String.starts_with?(&1, "REVEL_SESSION="))
+    |> List.first()
   end
 
   defp store_cookie(cookie) do
@@ -179,10 +182,10 @@ defmodule Kyopuro.AtCoder.Client do
         cookie
 
       {:error, :enoent} ->
-        Mix.raise(~s(Not found .cookie file. Please mix login before submit.))
+        Mix.raise(~s(Please run mix kyopuro.login))
 
       {:error, reason} ->
-        Mix.raise(~s(Load cookie error. reason: #{reason}))
+        Mix.raise(~s(There was an error loading the .cookie file. reason: #{reason}))
     end
   end
 
