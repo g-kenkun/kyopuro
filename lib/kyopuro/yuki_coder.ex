@@ -18,6 +18,28 @@ defmodule Kyopuro.YukiCoder do
     end
   end
 
+  def submit(args, opts) do
+    contest_id = Keyword.get(opts, :contest)
+    problem_no = Keyword.get(opts, :problem)
+
+    mapping =
+      File.read!(".mapping.json")
+      |> Jason.decode!()
+
+    cond do
+      contest_id ->
+        get_contest_mapping(mapping, contest_id)
+        |> Enum.map(&request_submit/1)
+
+      problem_no ->
+        get_problem_mapping(mapping, problem_no)
+        |> request_submit()
+
+      true ->
+        Mix.Tasks.Help.run(["kyopuro.submit"])
+    end
+  end
+
   defp generate_problem_by_problem_no(problem_no) do
     Client.get_problem_by_no(problem_no)
     |> Map.get("ProblemId")
@@ -116,5 +138,49 @@ defmodule Kyopuro.YukiCoder do
           submit_mapping: submit_mapping
       }
     end)
+  end
+
+  defp get_contest_mapping(mapping, contest_id) do
+    case Map.fetch(mapping, contest_id) do
+      :error ->
+        Mix.raise(
+          ~s(Contest ID: "#{contest_id}" not found on mapping. Please check the .mapping.json.")
+        )
+
+      {:ok, contest_mapping} ->
+        contest_mapping
+    end
+  end
+
+  defp get_problem_mapping(mapping, problem_no) do
+    case Map.fetch(mapping, "problem_#{problem_no}") do
+      :error ->
+        Mix.raise(
+          ~s(Problem No: "#{problem_no}" not found on mapping. Please check the .mapping.json.")
+        )
+
+      {:ok, problem_mapping} ->
+        problem_mapping
+    end
+  end
+
+  defp request_submit(problem_mapping) do
+    problem_id = Map.get(problem_mapping, :problem_id)
+
+    source_code =
+      case File.read(Map.get(problem_mapping, :module_path)) do
+        {:error, :enoent} ->
+          Mix.raise(~s(The file "#{Map.get(problem_mapping, :module_path)}" was not found.))
+
+        {:error, reason} ->
+          Mix.raise(~s(An error occurred while opening the file. Reason: "#{reason}"))
+
+        {:ok, source_code} ->
+          String.replace(source_code, ~r/(?<=defmodule ).*?(?= do)/, "Main", global: false)
+      end
+
+    body = URI.encode_query(%{"lang" => "elixir", "source" => source_code})
+
+    Client.submit_problem(problem_id, body)
   end
 end

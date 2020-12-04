@@ -23,8 +23,8 @@ defmodule Kyopuro.YukiCoder.Client do
     |> Jason.decode!()
   end
 
-  def submit_problem(problem_id) do
-    post_request("/contest/#{problem_id}/submit")
+  def submit_problem(problem_id, body) do
+    post_request("/contest/#{problem_id}/submit", [{"Content-Type", "multipart/form-data"}], body)
   end
 
   def get_problem_test_cases(problem_id) do
