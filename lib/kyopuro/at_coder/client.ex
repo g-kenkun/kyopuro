@@ -74,9 +74,25 @@ defmodule Kyopuro.AtCoder.Client do
     end
   end
 
-  def submit(contest_name, task_submit_name, file_name) do
-    build_submit_request(contest_name, task_submit_name, file_name)
-    |> Finch.request(Kyopuro.Finch)
+  def submit(contest_name, task_submit_name, source_code) do
+    path = "/contests/#{contest_name}/submit"
+    res =
+      build_get_request(path)
+      |> add_cookie_header()
+      |> request()
+
+    body =
+      URI.encode_query(%{
+        "data.TaskScreenName" => task_submit_name,
+        "data.LanguageId" => "4021",
+        "sourceCode" => source_code,
+        "csrf_token" => extract_csrf_token(res.body)
+      })
+
+    build_post_request(path, [], body)
+    |> add_cookie_header()
+    |> add_content_type_header()
+    |> request()
   end
 
   defp build_login_request(username, password) do
@@ -105,41 +121,40 @@ defmodule Kyopuro.AtCoder.Client do
     Finch.build(:post, url, headers, body)
   end
 
-  defp build_submit_request(contest_name, task_submit_name, module_path) do
-    url =
+  def build_get_request(path, headers \\ []),
+      do: build_request(:get, path, headers, "")
+
+  def build_post_request(path, headers \\ [], body \\ ""),
+      do: build_request(:post, path, headers , body)
+
+  def build_request(method, path, headers, body) do
+    uri =
       @base_url
-      |> URI.merge("/contests/#{contest_name}/submit")
+      |> URI.merge(path)
       |> URI.to_string()
 
-    headers = [{"content-type", "application/x-www-form-urlencoded;"}, {"cookie", load_cookie()}]
-
-    res =
-      Finch.build(:get, url, headers)
-      |> Finch.request(Kyopuro.Finch)
-      |> handle_response()
-
-    source_code =
-      case File.read(module_path) do
-        {:error, :enoent} ->
-          Mix.raise(~s(The file "#{module_path}" was not found.))
-
-        {:error, reason} ->
-          Mix.raise(~s(An error occurred while opening the file. Reason: "#{reason}"))
-
-        {:ok, source_code} ->
-          String.replace(source_code, ~r/(?<=defmodule ).*?(?= do)/, "Main", global: false)
-      end
-
-    body =
-      URI.encode_query(%{
-        "data.TaskScreenName" => task_submit_name,
-        "data.LanguageId" => "4021",
-        "sourceCode" => source_code,
-        "csrf_token" => extract_csrf_token(res.body)
-      })
-
-    Finch.build(:post, url, headers, body)
+    Finch.build(method, uri, headers, body)
   end
+
+  def request(request) do
+    Finch.request(request, Kyopuro.Finch)
+    |> handle_response()
+  end
+
+  defp add_cookie_header(request, cookie \\ load_cookie()) do
+    cookie_header = [{"cookie", cookie}]
+    %{request | headers: request.headers ++ cookie_header}
+  end
+
+  defp add_content_type_header(request) do
+    content_type_header = [{"content-type", "application/x-www-form-urlencoded"}]
+    %{request | headers: request.headers ++ content_type_header}
+  end
+
+  defp handle_response({:ok, res}) when res.status == 200, do: res
+  defp handle_response({:ok, res}) when res.status == 302, do: res
+  defp handle_response({:ok, res}) when res.status == 404, do: Mix.raise(~s(Not found page.))
+  defp handle_response({:ok, res}), do: Mix.raise(~s(Error. status_code: #{res.status}))
 
   defp handle_response({:error, error}) when is_transport_error(error),
     do: Mix.raise(~s(Transport error. Please check network.))
@@ -147,10 +162,9 @@ defmodule Kyopuro.AtCoder.Client do
   defp handle_response({:error, error}) when is_http_error(error),
     do: Mix.raise(~s(HTTP error. Please check network.))
 
-  defp handle_response({:ok, res}) when res.status == 404, do: Mix.raise(~s(Not found page.))
-  defp handle_response({:ok, res}) when res.status == 200, do: res
-  defp handle_response({:ok, res}) when res.status == 302, do: res
-  defp handle_response({:ok, res}), do: Mix.raise(~s(Error. status_code: #{res.status}))
+
+
+
 
   def extract_csrf_token(html) do
     Floki.parse_document!(html)

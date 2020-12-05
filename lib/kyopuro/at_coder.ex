@@ -66,8 +66,8 @@ defmodule Kyopuro.AtCoder do
           submit_mapping = %{
             contest_name => %{
               String.downcase(task_name) => %{
-                :task_submit_name => extract_task_screen_name(task_page),
-                :module_path => module_path
+                task_submit_name: extract_task_screen_name(task_page),
+                module_path: module_path
               }
             }
           }
@@ -86,51 +86,27 @@ defmodule Kyopuro.AtCoder do
     end
   end
 
-  def submit(contest_name, opts) do
-    File.read!(".mapping.json")
-    |> Jason.decode!()
-    |> Map.fetch(contest_name)
-    |> case do
-      :error ->
-        Mix.raise(
-          ~s(Contest name: "#{contest_name}" mapping not found. Please check the .mapping.json.")
-        )
+  def submit(args, opts) do
+    [contest_name | task_name_list] = args
 
-      {:ok, contest_submit_mapping} ->
-        task_name_list = Map.keys(contest_submit_mapping)
-
-        submit(contest_name, task_name_list, opts)
-    end
-  end
-
-  def submit(contest_name, task_name_list, _opts) do
-    submit_mapping =
+    mapping =
       File.read!(".mapping.json")
       |> Jason.decode!()
 
-    case Map.fetch(submit_mapping, contest_name) do
-      :error ->
-        Mix.raise(
-          ~s(Contest name: "#{contest_name}" mapping not found. Please check the .mapping.json.")
-        )
+    contest_mapping =
+      mapping
+      |> get_contest_mapping(contest_name)
 
-      {:ok, contest_submit_mapping} ->
-        Enum.map(task_name_list, fn task_name ->
-          case Map.fetch(contest_submit_mapping, task_name) do
-            :error ->
-              Mix.raise(
-                ~s(Task name: "#{contest_name}" mapping not found. Please check the .mapping.json.")
-              )
+    task_mapping =
+      case task_name_list do
+        [] ->
+          Map.values(contest_mapping)
 
-            {:ok, task_submit_mapping} ->
-              Client.submit(
-                contest_name,
-                Map.get(task_submit_mapping, "task_submit_name"),
-                Map.get(task_submit_mapping, "module_path")
-              )
-          end
-        end)
-    end
+        _ ->
+          Enum.map(task_name_list, &get_task_mapping(contest_mapping, &1))
+      end
+
+    Enum.map(task_mapping, &request_submit(contest_name, &1))
   end
 
   defp get_login_info(opts) do
@@ -140,11 +116,11 @@ defmodule Kyopuro.AtCoder do
     %{username: username, password: password}
   end
 
-
   defp get_login_info(key, opts) do
     case Application.fetch_env(:kyopuro, key) do
       {:ok, username} ->
         username
+
       {:error, _} ->
         cond do
           opts[key] ->
@@ -204,5 +180,47 @@ defmodule Kyopuro.AtCoder do
     |> Floki.find(~s(input[name="csrf_token"]))
     |> Floki.attribute("value")
     |> List.first()
+  end
+
+  defp get_contest_mapping(mapping, contest_name) do
+    case Map.fetch(mapping, contest_name) do
+      :error ->
+        Mix.raise(
+          ~s(Contest name: "#{contest_name}" mapping not found. Please check the .mapping.json.")
+        )
+
+      {:ok, contest_mapping} ->
+        contest_mapping
+    end
+  end
+
+  defp get_task_mapping(mapping, problem_name) do
+    case Map.fetch(mapping, problem_name) do
+      :error ->
+        Mix.raise(
+          ~s(Problem name: "#{problem_name}" mapping not found. Please check the .mapping.json.")
+        )
+
+      {:ok, task_mapping} ->
+        task_mapping
+    end
+  end
+
+  defp request_submit(contest_name, task_mapping) do
+    task_submit_name = Map.fetch!(task_mapping, "task_submit_name")
+
+    source_code =
+      case File.read(Map.get(task_mapping, "module_path")) do
+        {:error, :enoent} ->
+          Mix.raise(~s(The file "#{Map.get(task_mapping, "module_path")}" was not found.))
+
+        {:error, reason} ->
+          Mix.raise(~s(An error occurred while opening the file. Reason: "#{reason}"))
+
+        {:ok, source_code} ->
+          String.replace(source_code, ~r/(?<=defmodule ).*?(?= do)/, "Main", global: false)
+      end
+
+    Client.submit(contest_name, task_submit_name, source_code)
   end
 end
