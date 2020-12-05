@@ -7,22 +7,15 @@ defmodule Kyopuro.AtCoder do
   @default_module_template Application.app_dir(:kyopuro, "priv/templates/at_coder/module.ex")
   @default_test_template Application.app_dir(:kyopuro, "priv/templates/at_coder/test.exs")
 
-  def login(opts) do
-    login_info =
-      case Keyword.get(opts, :interactive, false) do
-        true ->
-          get_login_info_interactively()
-
-        _ ->
-          get_login_info_from_config()
-      end
+  def login(_args, opts) do
+    login_info = get_login_info(opts)
 
     case Client.login(login_info.username, login_info.password) do
       :ok ->
         Mix.shell().info("Login successfully.")
 
       :error ->
-        Mix.raise("Login failed, please check your username and password.")
+        Mix.raise("Login failed, please check username and password.")
     end
   end
 
@@ -140,25 +133,31 @@ defmodule Kyopuro.AtCoder do
     end
   end
 
-  defp get_login_info_from_config do
-    with {:ok, username} <- Application.fetch_env(:kyopuro, :username),
-         {:ok, password} <- Application.fetch_env(:kyopuro, :password) do
-      %{username: username, password: password}
-    else
-      _ -> Mix.raise("Failed fetch login info. Please check config file.")
-    end
-  end
-
-  defp get_login_info_interactively do
-    username =
-      Mix.shell().prompt("username:")
-      |> String.trim()
-
-    password =
-      Mix.shell().prompt("password:")
-      |> String.trim()
+  defp get_login_info(opts) do
+    username = get_login_info(:username, opts)
+    password = get_login_info(:password, opts)
 
     %{username: username, password: password}
+  end
+
+
+  defp get_login_info(key, opts) do
+    case Application.fetch_env(:kyopuro, key) do
+      {:ok, username} ->
+        username
+      {:error, _} ->
+        cond do
+          opts[key] ->
+            opts[key]
+
+          opts[:interactive] ->
+            Mix.shell().prompt("#{key}:")
+            |> String.trim()
+
+          true ->
+            Mix.raise("Failed fetch login info.")
+        end
+    end
   end
 
   defp extract_task_name(html) do

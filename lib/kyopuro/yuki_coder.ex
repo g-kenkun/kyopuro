@@ -12,6 +12,7 @@ defmodule Kyopuro.YukiCoder do
       true ->
         [contest_id | _] = args
         generate_problem_by_contest_id(contest_id)
+
       _ ->
         [problem_no | _] = args
         [generate_problem_by_problem_no(problem_no)]
@@ -80,7 +81,10 @@ defmodule Kyopuro.YukiCoder do
     test_template = Application.get_env(:kyopuro, :test_template, @default_test_template)
 
     submit_mapping = %{
-      "problem_#{Map.get(task, "No")}" => %{module_path: module_path, problem_id: Map.get(task, "ProblemId")}
+      "problem_#{Map.get(task, "No")}" => %{
+        module_path: module_path,
+        problem_id: Map.get(task, "ProblemId")
+      }
     }
 
     %{

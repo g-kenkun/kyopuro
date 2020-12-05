@@ -55,12 +55,6 @@ defmodule Mix.Tasks.Kyopuro.New do
         adapter.new(args, opts)
         |> Enum.map(&Kyopuro.put_binding/1)
         |> Enum.map(&Kyopuro.generate/1)
-       end
-
-
-#        Kyopuro.AtCoder.new(contest_name, opts)
-#        |> Enum.map(&Kyopuro.put_binding/1)
-#        |> Enum.map(&Kyopuro.generate/1)
-#    end
+    end
   end
 end

@@ -24,20 +24,30 @@ defmodule Mix.Tasks.Kyopuro.Submit do
 
   use Mix.Task
 
-  @switch []
+  @base_switch []
+  @at_coder_switch @base_switch
+  @yuki_coder_switch @base_switch
 
   def run(args) do
     Mix.Task.run("app.start")
 
-    case OptionParser.parse(args, switches: @switch) do
-      {_opts, [], _} ->
-        Mix.Tasks.Help.run(["kyopuro.submit"])
+    adapter = Application.get_env(:kyopuro, :adapter, Kyopuro.AtCoder)
 
-      {opts, [contest_name | []], _} ->
-        Kyopuro.AtCoder.submit(contest_name, opts)
+    case adapter do
+      Kyopuro.AtCoder ->
+        OptionParser.parse(args, switches: @at_coder_switch)
 
-      {opts, [contest_name | task_name_list], _} ->
-        Kyopuro.AtCoder.submit(contest_name, task_name_list, opts)
+      Kyopuro.YukiCoder ->
+        OptionParser.parse(args, switches: @yuki_coder_switch)
     end
+    |> case do
+         {_opts, [], _} ->
+           Mix.Tasks.Help.run(["kyopuro.new"])
+
+         {opts, args, _} ->
+           adapter.new(args, opts)
+           |> Enum.map(&Kyopuro.put_binding/1)
+           |> Enum.map(&Kyopuro.generate/1)
+       end
   end
 end

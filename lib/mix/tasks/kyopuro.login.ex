@@ -33,14 +33,14 @@ defmodule Mix.Tasks.Kyopuro.Login do
 
   use Mix.Task
 
-  @aliases [i: :interactive]
-  @switches [interactive: :boolean]
+  @aliases [i: :interactive, u: :username, p: :password]
+  @switches [interactive: :boolean, username: :string, password: :string]
 
   def run(args) do
     Mix.Task.run("app.start")
 
-    {opts, _, _} = OptionParser.parse(args, aliases: @aliases, switches: @switches)
+    {opts, args, _} = OptionParser.parse(args, aliases: @aliases, switches: @switches)
 
-    Kyopuro.AtCoder.login(opts)
+    Kyopuro.AtCoder.login(args, opts)
   end
 end
