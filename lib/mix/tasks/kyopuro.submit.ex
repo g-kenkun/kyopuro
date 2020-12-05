@@ -41,13 +41,11 @@ defmodule Mix.Tasks.Kyopuro.Submit do
         OptionParser.parse(args, switches: @yuki_coder_switch)
     end
     |> case do
-         {_opts, [], _} ->
-           Mix.Tasks.Help.run(["kyopuro.new"])
+      {_opts, [], _} ->
+        Mix.Tasks.Help.run(["kyopuro.submit"])
 
-         {opts, args, _} ->
-           adapter.new(args, opts)
-           |> Enum.map(&Kyopuro.put_binding/1)
-           |> Enum.map(&Kyopuro.generate/1)
-       end
+      {opts, args, _} ->
+        adapter.submit(args, opts)
+    end
   end
 end

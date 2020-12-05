@@ -48,7 +48,9 @@ defmodule Mix.Tasks.Kyopuro.Login do
           OptionParser.parse(args, switches: @at_coder_switches)
 
         Kyopuro.YukiCoder ->
-          Mix.raise("For YukiCoder you do not need to login. Instead, put the API Key in your config.")
+          Mix.raise(
+            "For YukiCoder you do not need to login. Instead, put the API Key in your config."
+          )
       end
 
     Kyopuro.AtCoder.login(args, opts)
