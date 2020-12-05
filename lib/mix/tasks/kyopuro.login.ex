@@ -35,11 +35,21 @@ defmodule Mix.Tasks.Kyopuro.Login do
 
   @aliases [i: :interactive, u: :username, p: :password]
   @switches [interactive: :boolean, username: :string, password: :string]
+  @at_coder_switches @switches
 
   def run(args) do
     Mix.Task.run("app.start")
 
-    {opts, args, _} = OptionParser.parse(args, aliases: @aliases, switches: @switches)
+    adapter = Application.get_env(:kyopuro, :adapter, Kyopuro.AtCoder)
+
+    {opts, args, _} =
+      case adapter do
+        Kyopuro.AtCoder ->
+          OptionParser.parse(args, switches: @at_coder_switches)
+
+        Kyopuro.YukiCoder ->
+          Mix.raise("For YukiCoder you do not need to login. Instead, put the API Key in your config.")
+      end
 
     Kyopuro.AtCoder.login(args, opts)
   end

@@ -31,9 +31,9 @@ defmodule Mix.Tasks.Kyopuro.New do
 
   use Mix.Task
 
-  @base_switch [only_module: :boolean, only_test: :boolean]
-  @at_coder_switch @base_switch
-  @yuki_coder_switch @base_switch ++ [contest: :boolean]
+  @base_switches [only_module: :boolean, only_test: :boolean]
+  @at_coder_switches @base_switches
+  @yuki_coder_switches @base_switches ++ [contest: :boolean]
 
   def run(args) do
     Mix.Task.run("app.start")
@@ -42,10 +42,10 @@ defmodule Mix.Tasks.Kyopuro.New do
 
     case adapter do
       Kyopuro.AtCoder ->
-        OptionParser.parse(args, switches: @at_coder_switch)
+        OptionParser.parse(args, switches: @at_coder_switches)
 
       Kyopuro.YukiCoder ->
-        OptionParser.parse(args, switches: @yuki_coder_switch)
+        OptionParser.parse(args, switches: @yuki_coder_switches)
     end
     |> case do
       {_opts, [], _} ->
