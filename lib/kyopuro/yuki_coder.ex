@@ -172,9 +172,9 @@ defmodule Kyopuro.YukiCoder do
     problem_id = Map.get(problem_mapping, :problem_id)
 
     source_code =
-      case File.read(Map.get(problem_mapping, :module_path)) do
+      case File.read(Map.get(problem_mapping, "module_path")) do
         {:error, :enoent} ->
-          Mix.raise(~s(The file "#{Map.get(problem_mapping, :module_path)}" was not found.))
+          Mix.raise(~s(The file "#{Map.get(problem_mapping, "module_path")}" was not found.))
 
         {:error, reason} ->
           Mix.raise(~s(An error occurred while opening the file. Reason: "#{reason}"))
