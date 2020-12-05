@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Kyopuro.Login do
     {opts, args, _} =
       case adapter do
         Kyopuro.AtCoder ->
-          OptionParser.parse(args, switches: @at_coder_switches)
+          OptionParser.parse(args, switches: @at_coder_switches, aliases: @aliases)
 
         Kyopuro.YukiCoder ->
           Mix.raise(
@@ -53,6 +53,6 @@ defmodule Mix.Tasks.Kyopuro.Login do
           )
       end
 
-    Kyopuro.AtCoder.login(args, opts)
+    adapter.login(args, opts)
   end
 end

@@ -86,7 +86,7 @@ defmodule Kyopuro.AtCoder do
     end
   end
 
-  def submit(args, opts) do
+  def submit(args, _opts) do
     [contest_name | task_name_list] = args
 
     mapping =
@@ -121,7 +121,7 @@ defmodule Kyopuro.AtCoder do
       {:ok, username} ->
         username
 
-      {:error, _} ->
+      :error ->
         cond do
           opts[key] ->
             opts[key]

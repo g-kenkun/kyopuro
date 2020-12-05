@@ -57,10 +57,24 @@ defmodule Kyopuro.AtCoder.Client do
   end
 
   def login(username, password) do
+    path = "/login"
+
     res =
-      build_login_request(username, password)
-      |> Finch.request(Kyopuro.Finch)
-      |> handle_response()
+      build_get_request(path)
+      |> request()
+
+    body =
+      URI.encode_query(%{
+        "username" => username,
+        "password" => password,
+        "csrf_token" => extract_csrf_token(res.body)
+      })
+
+    res =
+      build_post_request(path, [], body)
+      |> add_content_type_header()
+      |> add_cookie_header(extract_cookie(res.headers))
+      |> request()
 
     case judge_login_response(res.headers) do
       true ->
@@ -69,13 +83,14 @@ defmodule Kyopuro.AtCoder.Client do
 
         :ok
 
-      false ->
+      _ ->
         :error
     end
   end
 
   def submit(contest_name, task_submit_name, source_code) do
     path = "/contests/#{contest_name}/submit"
+
     res =
       build_get_request(path)
       |> add_cookie_header()
@@ -93,32 +108,6 @@ defmodule Kyopuro.AtCoder.Client do
     |> add_cookie_header()
     |> add_content_type_header()
     |> request()
-  end
-
-  defp build_login_request(username, password) do
-    url =
-      @base_url
-      |> URI.merge("/login")
-      |> URI.to_string()
-
-    res =
-      Finch.build(:get, url)
-      |> Finch.request(Kyopuro.Finch)
-      |> handle_response()
-
-    headers = [
-      {"content-type", "application/x-www-form-urlencoded"},
-      {"cookie", extract_cookie(res.headers)}
-    ]
-
-    body =
-      URI.encode_query(%{
-        "username" => username,
-        "password" => password,
-        "csrf_token" => extract_csrf_token(res.body)
-      })
-
-    Finch.build(:post, url, headers, body)
   end
 
   def build_get_request(path, headers \\ []),
@@ -162,10 +151,6 @@ defmodule Kyopuro.AtCoder.Client do
   defp handle_response({:error, error}) when is_http_error(error),
     do: Mix.raise(~s(HTTP error. Please check network.))
 
-
-
-
-
   def extract_csrf_token(html) do
     Floki.parse_document!(html)
     |> Floki.find("#main-container")
@@ -205,10 +190,8 @@ defmodule Kyopuro.AtCoder.Client do
 
   defp judge_login_response(headers) do
     headers
-    |> Enum.filter(fn {key, value} ->
+    |> Enum.any?(fn {key, value} ->
       key == "set-cookie" && String.starts_with?(value, "REVEL_FLASH=%00success")
     end)
-    |> Enum.empty?()
-    |> Kernel.!()
   end
 end
