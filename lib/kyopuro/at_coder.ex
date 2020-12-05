@@ -206,7 +206,7 @@ defmodule Kyopuro.AtCoder do
   end
 
   defp request_submit(contest_name, task_mapping) do
-    task_submit_name = Map.fetch!(task_mapping, "task_submit_name")
+    task_screen_name = Map.fetch!(task_mapping, "task_screen_name")
 
     source_code =
       case File.read(Map.get(task_mapping, "module_path")) do
@@ -220,6 +220,6 @@ defmodule Kyopuro.AtCoder do
           String.replace(source_code, ~r/(?<=defmodule ).*?(?= do)/, "Main", global: false)
       end
 
-    Client.submit(contest_name, task_submit_name, source_code)
+    Client.submit(contest_name, task_screen_name, source_code)
   end
 end
