@@ -19,71 +19,19 @@ defmodule Kyopuro.AtCoder do
     end
   end
 
-  def new(contest_name, _opts) do
-    app =
-      Mix.Project.config()
-      |> Keyword.fetch!(:app)
-      |> to_string()
+  def new(args, _opts) do
+    [contest_name | _] = args
 
-    app_module = Macro.camelize(app)
-    app_test = app <> "_test"
-    app_test_module = app_module <> "Test"
+    task_list_page = Client.get_contest_task_list_page(contest_name)
 
-    case Client.exists_contest?(contest_name) do
-      false ->
-        Mix.raise(~s(Content not found. Please check contest name "#{contest_name}"))
+    task_names = extract_task_name(task_list_page)
 
-      true ->
-        contest_path = String.downcase(contest_name)
-        contest_module = String.upcase(contest_name)
+    task_paths = extract_task_path(task_list_page)
 
-        task_list_page = Client.get_contest_task_list_page(contest_name)
-
-        task_page_list =
-          extract_task_path(task_list_page)
-          |> Enum.map(&Task.async(fn -> Client.get_task_page(&1) end))
-          |> Enum.map(&Task.await/1)
-
-        task_page_list
-        |> Enum.zip(extract_task_name(task_list_page))
-        |> Enum.map(fn {task_page, task_name} ->
-          module = Module.concat([app_module, contest_module, String.upcase(task_name)])
-          module_path = Path.join(["lib", app, contest_path, String.downcase(task_name) <> ".ex"])
-
-          test_module =
-            Module.concat([app_test_module, contest_module, String.upcase(task_name) <> "Test"])
-
-          test_path =
-            Path.join(["test", app_test, contest_path, String.downcase(task_name) <> "_test.exs"])
-
-          test_cases = extract_test_cases(task_page)
-
-          module_template =
-            Application.get_env(:kyopuro, :module_template, @default_module_template)
-
-          test_template = Application.get_env(:kyopuro, :test_template, @default_test_template)
-
-          submit_mapping = %{
-            contest_name => %{
-              String.downcase(task_name) => %{
-                task_submit_name: extract_task_screen_name(task_page),
-                module_path: module_path
-              }
-            }
-          }
-
-          %Problem{
-            module: module,
-            module_path: module_path,
-            test_module: test_module,
-            test_path: test_path,
-            test_cases: test_cases,
-            module_template: module_template,
-            test_template: test_template,
-            submit_mapping: submit_mapping
-          }
-        end)
-    end
+    Enum.zip(task_names, task_paths)
+    |> Enum.map(fn {task_name, task_path} ->
+      generate_problem(contest_name, task_name, task_path)
+    end)
   end
 
   def submit(args, _opts) do
@@ -152,6 +100,57 @@ defmodule Kyopuro.AtCoder do
     |> Floki.find("table > tbody > tr > td:nth-child(1) > a")
     |> Enum.map(&Floki.attribute(&1, "href"))
     |> List.flatten()
+  end
+
+  defp generate_problem(contest_name, task_name, task_path) do
+    problem = Problem.new()
+
+    contest_module = String.upcase(contest_name)
+    contest_path = String.downcase(contest_name)
+
+    task_page = Client.get_task_page(task_path)
+
+    test_cases = extract_test_cases(task_page)
+
+    module = Module.concat([problem.app_module, contest_module, String.upcase(task_name)])
+
+    module_path =
+      Path.join(["lib", problem.app, contest_path, String.downcase(task_name) <> ".ex"])
+
+    test_module =
+      Module.concat([problem.app_test_module, contest_module, String.upcase(task_name) <> "Test"])
+
+    test_path =
+      Path.join([
+        "test",
+        problem.app_test,
+        contest_path,
+        String.downcase(task_name) <> "_test.exs"
+      ])
+
+    module_template = Application.get_env(:kyopuro, :module_template, @default_module_template)
+    test_template = Application.get_env(:kyopuro, :test_template, @default_test_template)
+
+    submit_mapping = %{
+      contest_name => %{
+        String.downcase(task_name) => %{
+          task_screen_name: extract_task_screen_name(task_page),
+          module_path: module_path
+        }
+      }
+    }
+
+    %{
+      problem
+      | module: module,
+        module_path: module_path,
+        test_module: test_module,
+        test_path: test_path,
+        test_cases: test_cases,
+        module_template: module_template,
+        test_template: test_template,
+        submit_mapping: submit_mapping
+    }
   end
 
   defp extract_test_cases(html) do

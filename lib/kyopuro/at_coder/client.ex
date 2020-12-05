@@ -8,50 +8,21 @@ defmodule Kyopuro.AtCoder.Client do
   defguard is_transport_error(error) when is_struct(error, Mint.TransportError)
   defguard is_http_error(error) when is_struct(error, Mint.HTTPError)
 
-  @spec exists_contest?(contest_name :: String.t()) :: true | false
-  def exists_contest?(contest_name) do
-    url =
-      @base_url
-      |> URI.merge("/contests/#{contest_name}")
-      |> URI.to_string()
-
-    Finch.build(:get, url)
-    |> Finch.request(Kyopuro.Finch)
-    |> case do
-      {:ok, %Finch.Response{status: 200}} ->
-        true
-
-      _ ->
-        false
-    end
-  end
-
   @spec get_contest_task_list_page(contest_name :: String.t()) :: html()
   def get_contest_task_list_page(contest_name) do
-    url =
-      @base_url
-      |> URI.merge("/contests/#{contest_name}/tasks")
-      |> URI.to_string()
-
     res =
-      Finch.build(:get, url)
-      |> Finch.request(Kyopuro.Finch)
-      |> handle_response()
+      build_get_request("/contests/#{contest_name}/tasks")
+      |> request
 
     res.body
   end
 
   @spec get_task_page(path :: String.t()) :: html()
   def get_task_page(path) do
-    url =
-      @base_url
-      |> URI.merge(path)
-      |> URI.to_string()
-
     res =
-      Finch.build(:get, url, [{"cookie", load_cookie()}])
-      |> Finch.request(Kyopuro.Finch)
-      |> handle_response()
+      build_get_request(path)
+      |> add_cookie_header()
+      |> request()
 
     res.body
   end
@@ -111,10 +82,10 @@ defmodule Kyopuro.AtCoder.Client do
   end
 
   def build_get_request(path, headers \\ []),
-      do: build_request(:get, path, headers, "")
+    do: build_request(:get, path, headers, "")
 
   def build_post_request(path, headers \\ [], body \\ ""),
-      do: build_request(:post, path, headers , body)
+    do: build_request(:post, path, headers, body)
 
   def build_request(method, path, headers, body) do
     uri =
