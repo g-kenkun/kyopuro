@@ -169,7 +169,7 @@ defmodule Kyopuro.YukiCoder do
   end
 
   defp request_submit(problem_mapping) do
-    problem_id = Map.get(problem_mapping, :problem_id)
+    problem_id = Map.get(problem_mapping, "problem_id")
 
     source_code =
       case File.read(Map.get(problem_mapping, "module_path")) do
@@ -183,8 +183,6 @@ defmodule Kyopuro.YukiCoder do
           String.replace(source_code, ~r/(?<=defmodule ).*?(?= do)/, "Main", global: false)
       end
 
-    body = URI.encode_query(%{"lang" => "elixir", "source" => source_code})
-
-    Client.submit_problem(problem_id, body)
+    Client.submit_problem(problem_id, source_code)
   end
 end

@@ -23,8 +23,20 @@ defmodule Kyopuro.YukiCoder.Client do
     |> Jason.decode!()
   end
 
-  def submit_problem(problem_id, body) do
-    post_request("/contest/#{problem_id}/submit", [{"Content-Type", "multipart/form-data"}], body)
+  def submit_problem(problem_id, source_code) do
+    body = """
+    --boundary
+    Content-Disposition: form-data; name="lang"
+
+    elixir
+    --boundary
+    Content-Disposition: form-data; name="source"
+
+    #{source_code}
+    --boundary--
+    """
+
+    post_request("/problems/#{problem_id}/submit", [{"Content-Type", ~s(multipart/form-data; boundary="boundary")}], body)
   end
 
   def get_problem_test_cases(problem_id) do
@@ -71,10 +83,10 @@ defmodule Kyopuro.YukiCoder.Client do
   def post_request(path, headers \\ [], body \\ "") do
     uri =
       @base_url
-      |> URI.merge("/api/vi" <> path)
+      |> URI.merge("/api/v1" <> path)
       |> URI.to_string()
 
-    Finch.build(:post, uri, headers)
+    Finch.build(:post, uri, headers, body)
     |> add_accept_header()
     |> add_auth_header()
     |> request()
@@ -91,7 +103,8 @@ defmodule Kyopuro.YukiCoder.Client do
   end
 
   defp request(request) do
-    Finch.request(request, Kyopuro.Finch)
+    request
+    |> Finch.request(Kyopuro.Finch)
     |> handle_response()
   end
 

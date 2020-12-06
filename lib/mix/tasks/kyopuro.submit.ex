@@ -26,26 +26,22 @@ defmodule Mix.Tasks.Kyopuro.Submit do
 
   @base_switch []
   @at_coder_switch @base_switch
-  @yuki_coder_switch @base_switch
+  @yuki_coder_switch @base_switch ++ [contest: :string, problem: :string]
 
   def run(args) do
     Mix.Task.run("app.start")
 
     adapter = Application.get_env(:kyopuro, :adapter, Kyopuro.AtCoder)
 
-    case adapter do
-      Kyopuro.AtCoder ->
-        OptionParser.parse(args, switches: @at_coder_switch)
+    {opts, args, _} =
+      case adapter do
+        Kyopuro.AtCoder ->
+         OptionParser.parse(args, switches: @at_coder_switch)
 
-      Kyopuro.YukiCoder ->
-        OptionParser.parse(args, switches: @yuki_coder_switch)
-    end
-    |> case do
-      {_opts, [], _} ->
-        Mix.Tasks.Help.run(["kyopuro.submit"])
+        Kyopuro.YukiCoder ->
+          OptionParser.parse(args, switches: @yuki_coder_switch)
+      end
 
-      {opts, args, _} ->
-        adapter.submit(args, opts)
-    end
+    adapter.submit(args, opts)
   end
 end
