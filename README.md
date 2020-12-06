@@ -18,37 +18,44 @@ def deps do
 end
 ```
 
-## Usage
+## Usage - 使い方
 
-### AtCoder
+現在 [AtCoder](https://atcoder.jp/) と [YukiCoder](https://yukicoder.me/) に対応しています。
 
-#### Login - ログイン
+## AtCoder
+
+### Login - ログイン
 
 First, run the `mix kyopuro.login`.
 
 最初に`mix kyopuro.login`を実行します。
 
-    $ mix kyopuro.login
-    
-By default, it reads the login information from the configuration file.
+    $ mix kyopuro.login [--username USERNAME] [--password PASSWORD] [--interactive]
 
-デフォルトではコンフィグファイルからログイン情報を読み取ります。
+By default, use `Application.fetch_env` to read the login information. Write a configuration in `config.exs` and so on.
+
+デフォルトでは`Application.fetch_env`を使用してログイン情報を読み取ります。`config.exs`にコンフィグを書くなどしてください。
 
 ```elixir
 # in config/config.exs
+import Config
 
 config :kyopuro,
-    username: "#{username}",
-    password: "#{password}"
+    username: USERNAME,
+    password: PASSWORD
 ```
 
 You can use the `-i` or `--interactive` option to enable the interactive login.
 
 `-i`もしくは`--interactive`オプションを使用すれば対話形式でのログインができます。
 
-    $ mix kyopuro.login -i
-    or
-    $ mix kyopuro.login --interactive
+You can use the `-u` or `--username` options to give a username as an argument.
+
+`-u`もしくは`--username`オプションを使用すれば引数でユーザ名を与えることが可能です。
+
+You can use the `-p` or `--password` option to give the password as an argument.
+
+`-p`もしくは`--password`オプションを使用すれば引数でパスワードを与えることが可能です。
         
 If you get a 403 error, please try again.
     
@@ -60,7 +67,7 @@ Once you have logged in, you can specify a contest to generate modules and tests
 
 ログインが完了したらコンテストを指定してモジュールとテストを生成することができます。
 
-    $ mix kyopuro.new ${contest_name}
+    $ mix kyopuro.new CONTEST_NAME
     
 If you want to generate abc100 modules and tests, here's how it looks like.
 
@@ -96,9 +103,9 @@ You can submit a contest name or the name of the contest and task.
 
 コンテスト名もしくはコンテスト名とタスク名を指定して提出することができます。
 
-    $ mix kyopuro.submit ${contest_name}
+    $ mix kyopuro.submit CONTEST_NAME
     or
-    $ mix kyopuro.submit ${contest_name} ${module_file_name}
+    $ mix kyopuro.submit CONTEST_NAME TASK_NAME
 
 If you want to generate abc100 modules and tests, this is how it looks like.
 
@@ -121,6 +128,7 @@ You can customize the templates of the generated modules.
 
 ```elixir
 # in config/config.exs
+import Config
 
 config :kyopuro,
     module_template: "#{module_template_file_path}"
@@ -141,6 +149,41 @@ Only one value is currently available in the template.
 Basically, extend the `priv/templates/at_coder/module.ex`
 
 基本的には`priv/templates/at_coder/module.ex`を拡張してください
+
+## YukiCoder
+
+### Preparation - 準備
+
+`config.exs`に`api_key`と`adapter`を記述してください。
+
+```elixir
+# in config/config.exs
+import Config
+
+config :kyopuro,
+    api_key: API_KEY,
+    adapter: Kyopuro.YukiCoder
+```
+
+### Generate module & test - モジュールとテストの生成
+
+コンテストIDもしくは問題Noを指定してモジュールとテストを生成することができます。
+
+    $ mix kyopuro.new [--contest CONTEST_ID] [--problem PROBLEM_NO]
+
+ファイル構成はAtCoderと同じです。
+
+### Running Tests - テストの実行
+
+AtCoderと同じです。
+
+### Submit - 提出
+
+    $ mix kyopuro.submit [--contest CONTEST_ID] [--problem PROBLEM_ID]
+
+### Template - テンプレート
+
+AtCoderと同じです。
 
 ## Other - その他
 
