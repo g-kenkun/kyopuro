@@ -7,7 +7,7 @@ defmodule Kyopuro.YukiCoder do
   @default_module_template Application.app_dir(:kyopuro, "priv/templates/yuki_coder/module.ex")
   @default_test_template Application.app_dir(:kyopuro, "priv/templates/yuki_coder/test.exs")
 
-  def new(args, opts) do
+  def new(_args, opts) do
     cond do
       opts[:contest] ->
         generate_problem_by_contest_id(opts[:contest])
