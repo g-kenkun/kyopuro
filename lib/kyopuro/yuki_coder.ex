@@ -10,10 +10,10 @@ defmodule Kyopuro.YukiCoder do
   def new(args, opts) do
     cond do
       opts[:contest] ->
-        generate_problem_by_contest_id(contest_id)
+        generate_problem_by_contest_id(opts[:contest])
 
       opts[:problem] ->
-        [generate_problem_by_problem_no(problem_no)]
+        [generate_problem_by_problem_no(opts[:problem])]
 
       true ->
         Mix.Tasks.Help.run(["kyopuro.new"])
