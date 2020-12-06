@@ -4,6 +4,8 @@ This package provides a mix of tasks for AtCoder and YukiCoder. This package pro
 
 AtCoderとYukiCoder用のmixタスクを提供するパッケージです。このパッケージはモジュールの生成とテストケースの生成、提出を行うmixタスクを提供します。
 
+---
+
 ## Installation
 
 The Meeseeks package used in this package uses Rust for Nifs, so you need to set up the Rust environment beforehand.
@@ -13,10 +15,12 @@ The Meeseeks package used in this package uses Rust for Nifs, so you need to set
 ```elixir
 def deps do
   [
-    {:kyopuro, "~> 0.3.1"}
+    {:kyopuro, "~> 0.3.2"}
   ]
 end
 ```
+
+---
 
 ## Usage - 使い方
 
@@ -185,6 +189,8 @@ AtCoderと同じです。
 
 AtCoderと同じです。
 
+---
+
 ## Other - その他
 
 ### File name rewriting - ファイル名の書き換え
@@ -197,10 +203,10 @@ The `.mapping.json` file contains the contest name, task name and file path. Sin
 
 `.mapping.json`はコンテスト名・タスク名とファイルパスを紐付けています。提出時にはこのファイルを参照しているので、モジュールファイル名を書き換えると正しく動作しません。
 
-## Feature
+## Future - 今後の予定
 
 - Minor update
-    - 他のサイト(AOJとか)に対応するに当たって、プラグイン形式でモジュールを差し替えられるようにする
+    - 他のサイト(AOJとか)に対応する
     - 提出前にテストを実行して、失敗した場合は確認するようにする
 - Patch update
     - バグ修正

@@ -4,7 +4,7 @@ defmodule Kyopuro.MixProject do
   def project do
     [
       app: :kyopuro,
-      version: "0.3.1",
+      version: "0.3.2",
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       description: description(),
