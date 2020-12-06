@@ -15,7 +15,7 @@ The Meeseeks package used in this package uses Rust for Nifs, so you need to set
 ```elixir
 def deps do
   [
-    {:kyopuro, "~> 0.3.2"}
+    {:kyopuro, "~> 0.4.0"}
   ]
 end
 ```
