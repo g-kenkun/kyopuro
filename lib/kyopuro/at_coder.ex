@@ -20,7 +20,13 @@ defmodule Kyopuro.AtCoder do
   end
 
   def new(args, _opts) do
-    [contest_name | _] = args
+    contest_name =
+      case args do
+        [] ->
+          Mix.Tasks.Help.run(["kyopuro.new"])
+        [contest_name | _] ->
+          contest_name
+      end
 
     task_list_page = Client.get_contest_task_list_page(contest_name)
 

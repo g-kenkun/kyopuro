@@ -8,14 +8,15 @@ defmodule Kyopuro.YukiCoder do
   @default_test_template Application.app_dir(:kyopuro, "priv/templates/yuki_coder/test.exs")
 
   def new(args, opts) do
-    case opts[:contest] do
-      true ->
-        [contest_id | _] = args
+    cond do
+      opts[:contest] ->
         generate_problem_by_contest_id(contest_id)
 
-      _ ->
-        [problem_no | _] = args
+      opts[:problem] ->
         [generate_problem_by_problem_no(problem_no)]
+
+      true ->
+        Mix.Tasks.Help.run(["kyopuro.new"])
     end
   end
 
@@ -30,6 +31,7 @@ defmodule Kyopuro.YukiCoder do
     cond do
       contest_id ->
         get_contest_mapping(mapping, contest_id)
+        |> Map.values()
         |> Enum.map(&request_submit/1)
 
       problem_no ->
@@ -132,7 +134,12 @@ defmodule Kyopuro.YukiCoder do
         |> Path.join()
 
       submit_mapping = %{
-        "contest_#{Map.get(contest, "Id")}" => problem.submit_mapping
+        "contest_#{Map.get(contest, "Id")}" =>
+          problem.submit_mapping
+          |> Enum.map(fn {problem_no, problem_mapping} ->
+            {problem_no, %{problem_mapping | module_path: module_path}}
+          end)
+          |> Enum.into(%{})
       }
 
       %{
@@ -147,7 +154,7 @@ defmodule Kyopuro.YukiCoder do
   end
 
   defp get_contest_mapping(mapping, contest_id) do
-    case Map.fetch(mapping, contest_id) do
+    case Map.fetch(mapping, "contest_#{contest_id}") do
       :error ->
         Mix.raise(
           ~s(Contest ID: "#{contest_id}" not found on mapping. Please check the .mapping.json.")

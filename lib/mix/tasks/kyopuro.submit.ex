@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Kyopuro.Submit do
     {opts, args, _} =
       case adapter do
         Kyopuro.AtCoder ->
-         OptionParser.parse(args, switches: @at_coder_switch)
+          OptionParser.parse(args, switches: @at_coder_switch)
 
         Kyopuro.YukiCoder ->
           OptionParser.parse(args, switches: @yuki_coder_switch)

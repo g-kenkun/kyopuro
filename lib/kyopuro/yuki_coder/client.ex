@@ -34,7 +34,11 @@ defmodule Kyopuro.YukiCoder.Client do
     --boundary--
     """
 
-    post_request("/problems/#{problem_id}/submit", [{"Content-Type", ~s(multipart/form-data; boundary="boundary")}], body)
+    post_request(
+      "/problems/#{problem_id}/submit",
+      [{"Content-Type", ~s(multipart/form-data; boundary="boundary")}],
+      body
+    )
   end
 
   def get_problem_test_cases(problem_id) do
@@ -108,6 +112,7 @@ defmodule Kyopuro.YukiCoder.Client do
 
   defp handle_response({:ok, res}) when res.status == 200, do: res.body
   defp handle_response({:ok, res}) when res.status == 404, do: Mix.raise(~s(Not found page.))
+  defp handle_response({:ok, res}), do: Mix.raise(~s(Error. status_code: #{res.status}))
 
   defp handle_response({:error, error}) when is_transport_error(error),
     do: Mix.raise(~s(Transport error. Please check network.))

@@ -33,28 +33,24 @@ defmodule Mix.Tasks.Kyopuro.New do
 
   @base_switches [only_module: :boolean, only_test: :boolean]
   @at_coder_switches @base_switches
-  @yuki_coder_switches @base_switches ++ [contest: :boolean]
+  @yuki_coder_switches @base_switches ++ [contest: :string, problem: :string]
 
   def run(args) do
     Mix.Task.run("app.start")
 
     adapter = Application.get_env(:kyopuro, :adapter, Kyopuro.AtCoder)
 
-    case adapter do
-      Kyopuro.AtCoder ->
-        OptionParser.parse(args, switches: @at_coder_switches)
+    {opts, args, _} =
+      case adapter do
+        Kyopuro.AtCoder ->
+          OptionParser.parse(args, switches: @at_coder_switches)
 
-      Kyopuro.YukiCoder ->
-        OptionParser.parse(args, switches: @yuki_coder_switches)
-    end
-    |> case do
-      {_opts, [], _} ->
-        Mix.Tasks.Help.run(["kyopuro.new"])
+        Kyopuro.YukiCoder ->
+          OptionParser.parse(args, switches: @yuki_coder_switches)
+      end
 
-      {opts, args, _} ->
-        adapter.new(args, opts)
-        |> Enum.map(&Kyopuro.put_binding/1)
-        |> Enum.map(&Kyopuro.generate/1)
-    end
+      adapter.new(args, opts)
+      |> Enum.map(&Kyopuro.put_binding/1)
+      |> Enum.map(&Kyopuro.generate/1)
   end
 end
