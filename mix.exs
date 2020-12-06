@@ -42,6 +42,7 @@ defmodule Kyopuro.MixProject do
       {:deep_merge, "~> 1.0"},
       {:finch, "~> 0.5.2"},
       {:floki, "~> 0.29.0"},
+      {:flow, "~> 1.0"},
       {:html5ever, "~> 0.8.0"},
       {:inflex, "~> 2.1"},
       {:jason, "~> 1.2"},

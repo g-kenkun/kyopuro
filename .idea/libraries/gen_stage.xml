@@ -1,9 +1,9 @@
 <component name="libraryTable">
-  <library name="flow" type="mix">
+  <library name="gen_stage" type="mix">
     <CLASSES />
     <JAVADOC />
     <SOURCES>
-      <root url="file://$PROJECT_DIR$/deps/flow/lib" />
+      <root url="file://$PROJECT_DIR$/deps/gen_stage/lib" />
     </SOURCES>
   </library>
 </component>

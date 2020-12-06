@@ -62,5 +62,6 @@
     <orderEntry type="library" name="inch_ex" level="project" />
     <orderEntry type="library" name="inflex" level="project" />
     <orderEntry type="library" name="flow" level="project" />
+    <orderEntry type="library" name="gen_stage" level="project" />
   </component>
 </module>

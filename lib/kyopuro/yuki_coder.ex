@@ -19,7 +19,7 @@ defmodule Kyopuro.YukiCoder do
     end
   end
 
-  def submit(args, opts) do
+  def submit(_args, opts) do
     contest_id = Keyword.get(opts, :contest)
     problem_no = Keyword.get(opts, :problem)
 
@@ -110,27 +110,29 @@ defmodule Kyopuro.YukiCoder do
       module =
         problem.module
         |> Module.split()
-        |> List.insert_at(1, "contest_#{Map.get(contest, "Id")}")
+        |> List.insert_at(1, "Contest#{Map.get(contest, "Id")}")
         |> Module.concat()
 
       module_path =
         problem.module_path
         |> Path.split()
         |> List.insert_at(2, "contest_#{Map.get(contest, "Id")}")
+        |> Path.join()
 
       test_module =
         problem.test_module
         |> Module.split()
-        |> List.insert_at(1, "contest_#{Map.get(contest, "Id")}")
+        |> List.insert_at(1, "Contest#{Map.get(contest, "Id")}")
         |> Module.concat()
 
       test_path =
         problem.test_path
         |> Path.split()
         |> List.insert_at(2, "contest_#{Map.get(contest, "Id")}")
+        |> Path.join()
 
       submit_mapping = %{
-        "Contest#{Map.get(contest, "Id")}" => module.submit_mapping
+        "contest_#{Map.get(contest, "Id")}" => problem.submit_mapping
       }
 
       %{

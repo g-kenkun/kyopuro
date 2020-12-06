@@ -1,8 +1,6 @@
 defmodule Kyopuro.YukiCoder.Client do
   @moduledoc false
 
-  alias Kyopuro.YukiCoder.Client
-
   @base_url URI.parse("https://yukicoder.me")
 
   defguard is_transport_error(error) when is_struct(error, Mint.TransportError)
@@ -44,16 +42,16 @@ defmodule Kyopuro.YukiCoder.Client do
       get_problem_test_cases(problem_id, :in)
       |> Jason.decode!()
       |> Enum.sort()
-      |> Enum.map(&Task.async(fn -> Client.get_problem_test_case(problem_id, :in, &1) end))
-      |> Enum.map(&Task.await(&1, :infinity))
+      |> Flow.from_enumerable(max_demand: 10, mix_demand: 5)
+      |> Flow.map(&get_problem_test_case(problem_id, :in, &1))
       |> Enum.to_list()
 
     out_files =
       get_problem_test_cases(problem_id, :out)
       |> Jason.decode!()
       |> Enum.sort()
-      |> Enum.map(&Task.async(fn -> Client.get_problem_test_case(problem_id, :out, &1) end))
-      |> Enum.map(&Task.await(&1, :infinity))
+      |> Flow.from_enumerable(max_demand: 10, mix_demand: 5)
+      |> Flow.map(&get_problem_test_case(problem_id, :out, &1))
       |> Enum.to_list()
 
     Enum.zip(in_files, out_files)
@@ -104,7 +102,7 @@ defmodule Kyopuro.YukiCoder.Client do
 
   defp request(request) do
     request
-    |> Finch.request(Kyopuro.Finch)
+    |> Finch.request(Kyopuro.Finch, receive_timeout: :infinity)
     |> handle_response()
   end
 

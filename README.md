@@ -1,8 +1,8 @@
 # Kyopuro
 
-This package provides a mix of tasks for AtCoder. This package provides mix tasks for module generation and test case generation.
+This package provides a mix of tasks for AtCoder and YukiCoder. This package provides mix tasks for module generation and test case generation.
 
-AtCoder用のmixタスクを提供するパッケージです。このパッケージはモジュールの生成とテストケースの生成、提出を行うmixタスクを提供します。
+AtCoderとYukiCoder用のmixタスクを提供するパッケージです。このパッケージはモジュールの生成とテストケースの生成、提出を行うmixタスクを提供します。
 
 ## Installation
 
@@ -20,7 +20,9 @@ end
 
 ## Usage
 
-### Login - ログイン
+### AtCoder
+
+#### Login - ログイン
 
 First, run the `mix kyopuro.login`.
 
@@ -40,7 +42,7 @@ config :kyopuro,
     password: "#{password}"
 ```
 
-You can use the `--i` or `--interactive` option to enable interactive login.
+You can use the `-i` or `--interactive` option to enable the interactive login.
 
 `-i`もしくは`--interactive`オプションを使用すれば対話形式でのログインができます。
 
