@@ -1,3 +1,3 @@
 import Config
 
-config :floki, :html_parser, Floki.HTMLParser.Html5ever
+config :tesla, :adapter, {Tesla.Adapter.Finch, name: MyFinch}

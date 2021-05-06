@@ -4,39 +4,106 @@ defmodule Kyopuro.AtCoder do
   alias Kyopuro.Problem
   alias Kyopuro.AtCoder.Client
 
+  defguard is_transport_error(error) when is_struct(error, Mint.TransportError)
+  defguard is_http_error(error) when is_struct(error, Mint.HTTPError)
+
   @default_module_template Application.app_dir(:kyopuro, "priv/templates/at_coder/module.ex")
   @default_test_template Application.app_dir(:kyopuro, "priv/templates/at_coder/test.exs")
 
-  def login(_args, opts) do
-    login_info = get_login_info(opts)
+  def login(username, password) do
+    case Client.login(username, password) do
+      {:ok, cookie} ->
+        # store_cookie(cookie)
 
-    case Client.login(login_info.username, login_info.password) do
-      :ok ->
         Mix.shell().info("Login successfully.")
 
-      :error ->
-        Mix.raise("Login failed, please check username and password.")
+      {:error, error} ->
+        error_to_string(error)
     end
   end
+
+  def new(contest_name) do
+    case Client.get_task_list_page(contest_name) do
+      {:ok, html} ->
+        tasks = extract_task(html)
+
+
+
+        # Enum.zip(task_names, task_paths)
+        # |> Enum.map(fn {task_name, task_path} ->
+        #   generate_problem(contest_name, task_name, task_path)
+        # end)
+
+      {:error, error} ->
+        error_to_string(error)
+    end
+  end
+
+  defp error_to_string(error) do
+    case error do
+      error when is_transport_error(error) ->
+        Mint.TransportError.message(error)
+
+      error when is_http_error(error) ->
+        Mint.HTTPError.message(error)
+
+      {:status_code, status_code} ->
+        "bad status code #{inspect(status_code)}"
+
+      {:file_read_error, reason} ->
+        :file.format_error(reason)
+    end
+  end
+
+  defp extract_task(html) do
+    Floki.parse_document!(html)
+    |> Floki.find("#main-container")
+    |> Floki.find("div:nth-child(1) > div:nth-child(2) > div")
+    |> Floki.find("table > tbody > tr > td:nth-child(1) > a")
+    |> Enum.map(fn html_tree ->
+      test_cases =
+        Floki.attribute(html_tree, "href")
+        |> List.first()
+        |> Client.get_task_page()
+        |> extract_test_cases()
+
+
+
+      %{
+        name: Floki.text(html_tree),
+        path: Floki.attribute("href") |> List.first()
+      }
+    end)
+  end
+
+  # def login(_args, opts) do
+  #   login_info = get_login_info(opts)
+
+  #   case Client.login(login_info.username, login_info.password) do
+  #     :ok ->
+  #       Mix.shell().info("Login successfully.")
+
+  #     :error ->
+  #       Mix.raise("Login failed, please check username and password.")
+  #   end
+  # end
 
   def new(args, _opts) do
     contest_name =
       case args do
         [] ->
           Mix.Tasks.Help.run(["kyopuro.new"])
+
         [contest_name | _] ->
           contest_name
       end
 
-    task_list_page = Client.get_contest_task_list_page(contest_name)
+    task_list_page = Client.get_task_list_page(contest_name)
 
-    task_names = extract_task_name(task_list_page)
+    task_list = extract_task(task_list_page)
 
-    task_paths = extract_task_path(task_list_page)
-
-    Enum.zip(task_names, task_paths)
-    |> Enum.map(fn {task_name, task_path} ->
-      generate_problem(contest_name, task_name, task_path)
+    Enum.map(task_list, fn task ->
+      generate_problem(contest_name, task.name, task.path)
     end)
   end
 
@@ -63,40 +130,44 @@ defmodule Kyopuro.AtCoder do
     Enum.map(task_mapping, &request_submit(contest_name, &1))
   end
 
-  defp get_login_info(opts) do
-    username = get_login_info(:username, opts)
-    password = get_login_info(:password, opts)
+  # defp get_login_info(username, password) do
+  #   username = get_login_info(:username, opts)
+  #   password = get_login_info(:password, opts)
 
-    %{username: username, password: password}
-  end
+  #   %{username: username, password: password}
+  # end
 
-  defp get_login_info(key, opts) do
-    case Application.fetch_env(:kyopuro, key) do
-      {:ok, username} ->
-        username
+  # defp get_login_info(key, opts) do
+  #   case Application.fetch_env(:kyopuro, key) do
+  #     {:ok, username} ->
+  #       username
 
-      :error ->
-        cond do
-          opts[key] ->
-            opts[key]
+  #     :error ->
+  #       cond do
+  #         opts[key] ->
+  #           opts[key]
 
-          opts[:interactive] ->
-            Mix.shell().prompt("#{key}:")
-            |> String.trim()
+  #         opts[:interactive] ->
+  #           Mix.shell().prompt("#{key}:")
+  #           |> String.trim()
 
-          true ->
-            Mix.raise("Failed fetch login info.")
-        end
-    end
-  end
+  #         true ->
+  #           Mix.raise("Failed fetch login info.")
+  #       end
+  #   end
+  # end
 
-  defp extract_task_name(html) do
+  defp extract_task(html) do
     Floki.parse_document!(html)
     |> Floki.find("#main-container")
     |> Floki.find("div:nth-child(1) > div:nth-child(2) > div")
     |> Floki.find("table > tbody > tr > td:nth-child(1) > a")
-    |> Enum.map(&Floki.text/1)
-    |> List.flatten()
+    |> Enum.map(fn html_tree ->
+      %{
+        name: Floki.text(html_tree),
+        path: Floki.attribute("href") |> List.first()
+      }
+    end)
   end
 
   defp extract_task_path(html) do
@@ -104,8 +175,7 @@ defmodule Kyopuro.AtCoder do
     |> Floki.find("#main-container")
     |> Floki.find("div:nth-child(1) > div:nth-child(2) > div")
     |> Floki.find("table > tbody > tr > td:nth-child(1) > a")
-    |> Enum.map(&Floki.attribute(&1, "href"))
-    |> List.flatten()
+    |> Floki.attribute("href")
   end
 
   defp generate_problem(contest_name, task_name, task_path) do
@@ -227,5 +297,17 @@ defmodule Kyopuro.AtCoder do
       end
 
     Client.submit(contest_name, task_screen_name, source_code)
+  end
+
+  defmodule Contest do
+    defstruct name: nil, tasks: []
+  end
+
+  defmodule Task do
+    defstruct name: nil, test_cases: []
+  end
+
+  defmodule TestCase do
+    defstruct input: "", output: ""
   end
 end

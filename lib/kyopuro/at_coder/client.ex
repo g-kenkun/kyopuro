@@ -1,168 +1,173 @@
 defmodule Kyopuro.AtCoder.Client do
   @moduledoc false
 
-  @type html() :: String.t()
+  use Tesla
 
-  @base_url URI.parse("https://atcoder.jp")
+  adapter(Tesla.Adapter.Finch, name: Kyopuro.Finch)
+  plug(Tesla.Middleware.BaseUrl, "https://atcoder.jp")
+  plug(Tesla.Middleware.PathParams)
+  plug(Tesla.Middleware.FormUrlencoded)
 
   defguard is_transport_error(error) when is_struct(error, Mint.TransportError)
   defguard is_http_error(error) when is_struct(error, Mint.HTTPError)
 
-  @spec get_contest_task_list_page(contest_name :: String.t()) :: html()
-  def get_contest_task_list_page(contest_name) do
-    res =
-      build_get_request("/contests/#{contest_name}/tasks")
-      |> request
+  @type html :: Tesla.Env.body()
+  @type cookie :: String.t()
 
-    res.body
+  @type client_error :: {:error, Mint.Types.error()} | {:error, {:status_code, integer()}}
+  @type file_error :: {:error, {:file_read_error, File.posix()}}
+
+  def get_task_list_page(contest_name) do
+    path_params = [contest_name: contest_name]
+
+    get("/contests/:contest_name/tasks", opts: [path_params: path_params])
+    |> handle_response()
+    |> case do
+      {:ok, res} ->
+        {:ok, res.body}
+
+      error ->
+        error
+    end
   end
 
-  @spec get_task_page(path :: String.t()) :: html()
   def get_task_page(path) do
-    res =
-      build_get_request(path)
-      |> add_cookie_header()
-      |> request()
+    case load_cookie() do
+      {:ok, cookie} ->
+        headers = [{"cookie", cookie}]
 
-    res.body
+        get(path, headers: headers)
+        |> handle_response()
+        |> case do
+          {:ok, res} ->
+            {:ok, res.body}
+
+          error ->
+            error
+        end
+
+      {:error, reason} ->
+        # :file.format_error/1 を使うといい感じのメッセージにできる
+        {:error, {:file_read_error, reason}}
+    end
   end
 
   def login(username, password) do
-    path = "/login"
+    case get_csrf_token() do
+      {:ok, csrf_token} ->
+        body = %{
+          "username" => username,
+          "password" => password,
+          "csrf_token" => csrf_token
+        }
 
-    res =
-      build_get_request(path)
-      |> request()
+        post("/login", body)
+        |> handle_response()
+        |> case do
+          {:ok, res} ->
+            judge_login(res.headers)
 
-    body =
-      URI.encode_query(%{
-        "username" => username,
-        "password" => password,
-        "csrf_token" => extract_csrf_token(res.body)
-      })
+          error ->
+            error
+        end
 
-    res =
-      build_post_request(path, [], body)
-      |> add_content_type_header()
-      |> add_cookie_header(extract_cookie(res.headers))
-      |> request()
-
-    case judge_login_response(res.headers) do
-      true ->
-        extract_cookie(res.headers)
-        |> store_cookie()
-
-        :ok
-
-      _ ->
-        :error
+      error ->
+        error
     end
   end
 
   def submit(contest_name, task_submit_name, source_code) do
-    path = "/contests/#{contest_name}/submit"
-
-    res =
-      build_get_request(path)
-      |> add_cookie_header()
-      |> request()
-
-    body =
-      URI.encode_query(%{
+    with {:ok, csrf_token} <- get_csrf_token,
+         {:ok, cookie} <- load_cookie() do
+      body = %{
         "data.TaskScreenName" => task_submit_name,
         "data.LanguageId" => "4021",
         "sourceCode" => source_code,
-        "csrf_token" => extract_csrf_token(res.body)
-      })
+        "csrf_token" => csrf_token
+      }
 
-    build_post_request(path, [], body)
-    |> add_cookie_header()
-    |> add_content_type_header()
-    |> request()
+      headers = [{"cookie", cookie}]
+
+      path_params = [contest_name: contest_name]
+
+      post("/contests/:contest_name/submit", body,
+        headers: headers,
+        opts: [path_params: path_params]
+      )
+      |> handle_response()
+    else
+      error ->
+        error
+    end
   end
 
-  def build_get_request(path, headers \\ []),
-    do: build_request(:get, path, headers, "")
-
-  def build_post_request(path, headers \\ [], body \\ ""),
-    do: build_request(:post, path, headers, body)
-
-  def build_request(method, path, headers, body) do
-    uri =
-      @base_url
-      |> URI.merge(path)
-      |> URI.to_string()
-
-    Finch.build(method, uri, headers, body)
-  end
-
-  def request(request) do
-    Finch.request(request, Kyopuro.Finch)
+  # csrf_tokenを取得
+  def get_csrf_token() do
+    get("/")
     |> handle_response()
+    |> case do
+      {:ok, res} ->
+        extract_csrf_token(res.body)
+
+      error ->
+        error
+    end
   end
 
-  defp add_cookie_header(request, cookie \\ load_cookie()) do
-    cookie_header = [{"cookie", cookie}]
-    %{request | headers: request.headers ++ cookie_header}
-  end
+  # リクエストのステータスコードが200,302のときはOK. それ以外はNG.
 
-  defp add_content_type_header(request) do
-    content_type_header = [{"content-type", "application/x-www-form-urlencoded"}]
-    %{request | headers: request.headers ++ content_type_header}
-  end
+  @spec handle_response(Tesla.Env.result()) :: {:ok, Tesla.Env.t()} | {:error, Mint.Types.error()} | {:error, {:status_code, integer()}} | {:error, :something_error}
+  defp handle_response({:ok, res}) when res.status in [200, 302], do: {:ok, res}
+  defp handle_response({:ok, res}), do: {:error, {:status_code, res.status}}
 
-  defp handle_response({:ok, res}) when res.status == 200, do: res
-  defp handle_response({:ok, res}) when res.status == 302, do: res
-  defp handle_response({:ok, res}) when res.status == 404, do: Mix.raise(~s(Not found page.))
-  defp handle_response({:ok, res}), do: Mix.raise(~s(Error. status_code: #{res.status}))
+  defp handle_response({:error, error}) when is_transport_error(error) or is_http_error(error),
+    do: {:error, error}
 
-  defp handle_response({:error, error}) when is_transport_error(error),
-    do: Mix.raise(~s(Transport error. Please check network.))
-
-  defp handle_response({:error, error}) when is_http_error(error),
-    do: Mix.raise(~s(HTTP error. Please check network.))
-
-  def extract_csrf_token(html) do
-    Floki.parse_document!(html)
-    |> Floki.find("#main-container")
-    |> Floki.find(~s(input[name="csrf_token"]))
-    |> Floki.attribute("value")
-    |> List.first()
-  end
-
-  defp extract_cookie(headers) do
-    headers
-    |> Enum.flat_map(fn {key, value} ->
-      case String.match?(key, ~r/set-cookie/) do
-        true -> String.split(value, ";", trim: true)
-        _ -> []
-      end
-    end)
-    |> Enum.filter(&String.starts_with?(&1, "REVEL_SESSION="))
-    |> List.first()
+  # cookieを読み込む
+  defp load_cookie() do
+    File.read(".cookie")
   end
 
   defp store_cookie(cookie) do
     Mix.Generator.create_file(".cookie", cookie)
   end
 
-  defp load_cookie do
-    case File.read(".cookie") do
-      {:ok, cookie} ->
-        cookie
+  # csrf_tokenを取り出す
+  defp extract_csrf_token(html) do
+    Floki.parse_document!(html)
+    |> Floki.attribute(~s(input[name="csrf_token"]), "value")
+    |> List.first()
+    |> case do
+      csrf_token when not is_nil(csrf_token) ->
+        {:ok, csrf_token}
 
-      {:error, :enoent} ->
-        Mix.raise(~s(Please run mix kyopuro.login))
-
-      {:error, reason} ->
-        Mix.raise(~s(There was an error loading the .cookie file. reason: #{reason}))
+      nil ->
+        {:error, :not_found_csrf_token}
     end
   end
 
-  defp judge_login_response(headers) do
+  # ログイン判定. OKならsession cokkieを返す
+  defp judge_login(headers) do
     headers
     |> Enum.any?(fn {key, value} ->
       key == "set-cookie" && String.starts_with?(value, "REVEL_FLASH=%00success")
     end)
+    |> case do
+      true ->
+        headers
+        |> Enum.find(fn {key, value} ->
+          key == "set-cookie" && String.starts_with?(value, "REVEL_SESSION=")
+        end)
+        |> case do
+          {"set-cookie", cookie} ->
+            {:ok, cookie}
+
+          _ ->
+            {:error, :not_found_sesstion_cookie}
+        end
+
+      _ ->
+        {:error, :login_failed}
+    end
   end
 end

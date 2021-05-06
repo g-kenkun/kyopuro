@@ -39,14 +39,21 @@ defmodule Kyopuro.MixProject do
 
   defp deps do
     [
+      # HTTPクライアント関連
+      {:tesla, "~> 1.4"},
+      {:finch, "~> 0.6.3"},
+      {:flow, "~> 1.1"},
+
+      # HTMLパーサー
+      {:floki, "~> 0.30.1"},
+
+      # マッピング関連
       {:deep_merge, "~> 1.0"},
-      {:finch, "~> 0.5.2"},
-      {:floki, "~> 0.29.0"},
-      {:flow, "~> 1.0"},
-      {:html5ever, "~> 0.8.0"},
-      {:inflex, "~> 2.1"},
       {:jason, "~> 1.2"},
-      {:ex_doc, "~> 0.23", only: :dev, runtime: false}
+
+      # ユーティリティ
+      {:inflex, "~> 2.1"},
+      {:ex_doc, "~> 0.24.2", only: :dev, runtime: false}
     ]
   end
 

@@ -8,7 +8,7 @@ defmodule Kyopuro.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      {Finch, name: Kyopuro.Finch, count: 6}
+      {Finch, name: Kyopuro.Finch}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

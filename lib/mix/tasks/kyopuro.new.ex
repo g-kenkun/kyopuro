@@ -49,8 +49,8 @@ defmodule Mix.Tasks.Kyopuro.New do
           OptionParser.parse(args, switches: @yuki_coder_switches)
       end
 
-      adapter.new(args, opts)
-      |> Enum.map(&Kyopuro.put_binding/1)
-      |> Enum.map(&Kyopuro.generate/1)
+    adapter.new(args, opts)
+    |> Enum.map(&Kyopuro.put_binding/1)
+    |> Enum.map(&Kyopuro.generate/1)
   end
 end
