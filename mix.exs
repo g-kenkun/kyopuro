@@ -5,7 +5,7 @@ defmodule Kyopuro.MixProject do
     [
       app: :kyopuro,
       version: "0.4.0",
-      elixir: "~> 1.11",
+      elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       description: description(),
       package: package(),
@@ -40,13 +40,13 @@ defmodule Kyopuro.MixProject do
   defp deps do
     [
       {:deep_merge, "~> 1.0"},
-      {:finch, "~> 0.5.2"},
-      {:floki, "~> 0.29.0"},
-      {:flow, "~> 1.0"},
-      {:html5ever, "~> 0.8.0"},
+      {:finch, "~> 0.10.1"},
+      {:floki, "~> 0.32.0"},
+      {:flow, "~> 1.1"},
+      {:html5ever, "~> 0.11.0"},
       {:inflex, "~> 2.1"},
-      {:jason, "~> 1.2"},
-      {:ex_doc, "~> 0.23", only: :dev, runtime: false}
+      {:jason, "~> 1.3"},
+      {:ex_doc, "~> 0.26" , only: :dev, runtime: false}
     ]
   end
 
