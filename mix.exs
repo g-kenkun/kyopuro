@@ -4,8 +4,8 @@ defmodule Kyopuro.MixProject do
   def project do
     [
       app: :kyopuro,
-      version: "0.4.0",
-      elixir: "~> 1.11",
+      version: "0.6.0",
+      elixir: "~> 1.15.2",
       start_permanent: Mix.env() == :prod,
       description: description(),
       package: package(),
@@ -19,14 +19,13 @@ defmodule Kyopuro.MixProject do
 
   def application do
     [
-      extra_applications: [:logger, :eex],
-      mod: {Kyopuro.Application, []}
+      extra_applications: [:logger, :eex]
     ]
   end
 
   defp description do
     """
-    This package provides a mix of tasks for AtCoder. This package provides mix tasks for module generation and test case generation.
+    This package provides mix tasks for AtCoder.
     """
   end
 
@@ -39,14 +38,18 @@ defmodule Kyopuro.MixProject do
 
   defp deps do
     [
-      {:deep_merge, "~> 1.0"},
-      {:finch, "~> 0.5.2"},
-      {:floki, "~> 0.29.0"},
-      {:flow, "~> 1.0"},
-      {:html5ever, "~> 0.8.0"},
-      {:inflex, "~> 2.1"},
-      {:jason, "~> 1.2"},
-      {:ex_doc, "~> 0.23", only: :dev, runtime: false}
+      # Util
+      {:unicode, "~> 1.18"},
+
+      # For processing
+      {:floki, "~> 0.35.2"},
+      {:httpoison, "~> 2.2"},
+
+      # For prompt
+      {:owl, "~> 0.8.0"},
+
+      # For ExDoc
+      {:ex_doc, "~> 0.31.0", only: :dev, runtime: false}
     ]
   end
 

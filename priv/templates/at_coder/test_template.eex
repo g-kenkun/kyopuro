@@ -9,6 +9,5 @@ defmodule <%= inspect(test_module) %> do
         <%= inspect(module) %>.main()
       end) == <%= inspect(Keyword.get(test_case, :output)) %>
     )
-  end
-<% end %>
+  end<% end %>
 end

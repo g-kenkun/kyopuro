@@ -1,58 +1,32 @@
 defmodule Mix.Tasks.Kyopuro.Login do
   @moduledoc """
-  First, run the `mix kyopuro.login`.
+  AtCoderにログインするMixタスクです。
 
-  最初に`mix kyopuro.login`を実行します。
+      $ mix kyopuro.login
 
-    $ mix kyopuro.login
+  認証情報はプロンプトから入力、もしくはConfigから取得させることができます。
 
-  By default, it reads the login information from the configuration file.
-
-  デフォルトではコンフィグファイルからログイン情報を読み取ります。
+  Configから認証情報を取得させる場合は以下のように記載してください。パスワードはファイルに保存したくない場合は`username`のみを記載してください。
 
   ```elixir
   # in config/config.exs
+  import Config
 
   config :kyopuro,
     username: "hogehoge",
     password: "hugahuga"
   ```
 
-  You can use the `--i` or `--interactive` option to enable interactive login.
+  Configから認証情報を取得できない場合はプロンプトから入力を求められます。
 
-  `-i`もしくは`--interactive`オプションを使用すれば対話形式でのログインができます。
-
-    $ mix kyopuro.login -i
-    or
-    $ mix kyopuro.login --interactive
-
-  If you get a 403 error, please try again.
-
-  もし403エラーが出た場合は再度実行してください。
+  ログインに失敗した趣旨のメッセージが表示された場合は、認証情報を確認の上再度実行してください。
   """
 
   use Mix.Task
 
-  @aliases [i: :interactive, u: :username, p: :password]
-  @switches [interactive: :boolean, username: :string, password: :string]
-  @at_coder_switches @switches
-
-  def run(args) do
-    Mix.Task.run("app.start")
-
-    adapter = Application.get_env(:kyopuro, :adapter, Kyopuro.AtCoder)
-
-    {opts, args, _} =
-      case adapter do
-        Kyopuro.AtCoder ->
-          OptionParser.parse(args, switches: @at_coder_switches, aliases: @aliases)
-
-        Kyopuro.YukiCoder ->
-          Mix.raise(
-            "For YukiCoder you do not need to login. Instead, put the API Key in your config."
-          )
-      end
-
-    adapter.login(args, opts)
+  @requirements ["app.start"]
+  @impl Mix.Task
+  def run(_argv) do
+    Kyopuro.login()
   end
 end

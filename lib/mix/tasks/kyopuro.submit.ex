@@ -1,47 +1,29 @@
 defmodule Mix.Tasks.Kyopuro.Submit do
   @moduledoc """
-  You can submit a contest name or the name of the contest and task.
+  提出するMixタスクです。本Mixタスクを使用する場合は事前に`mix kyopuro.login`を実行してログインしておくことが必要です。
 
-  コンテスト名もしくはコンテスト名とタスク名を指定して提出することができます。
+  提出したいファイルのパスを指定することで提出できます。例としてABC100のA問題を提出するコマンドは以下のようになります。
 
-    $ mix kyopuro.submit ${contest_name}
-    or
-    $ mix kyopuro.submit ${contest_name} ${module_file_name}
+      $ mix kyopuro.submit lib/hoge/abc_001/a.ex
 
-  If you want to generate abc100 modules and tests, this is how it looks like.
+  複数提出したい場合は連続してファイルのパスを指定することで提出できます。
 
-  abc100の提出をする場合は以下のようになります。
+      $ mix kyopuro.submit lib/hoge/abc_001/a.ex lib/hoge/abc_001/b.ex
 
-    $ mix kyopuro.submit abc100
-    $ mix kyopuro.submit abc100 a
+  まとめて提出したい場合はファイルのパスを途中まで指定することで提出できます。
 
-  You can give multiple task names.
+      $ mix kyopuro.submit lib/hoge/abc_001
 
-  タスク名は複数与えることが可能です。
-
-    $ mix kyopuro.submit abc100 a b c d
+  > #### 注意事項 {: .error}
+  >
+  > 提出に必要な情報は`mix kyopuro.new`を実行したときに生成される`mapping`が持っているため、そこに記載のないファイルのパスを指定しても提出されません。手動で作成したモジュールを提出したい場合は`mapping`を手動で編集してください。
   """
 
   use Mix.Task
 
-  @base_switch []
-  @at_coder_switch @base_switch
-  @yuki_coder_switch @base_switch ++ [contest: :string, problem: :string]
-
-  def run(args) do
-    Mix.Task.run("app.start")
-
-    adapter = Application.get_env(:kyopuro, :adapter, Kyopuro.AtCoder)
-
-    {opts, args, _} =
-      case adapter do
-        Kyopuro.AtCoder ->
-          OptionParser.parse(args, switches: @at_coder_switch)
-
-        Kyopuro.YukiCoder ->
-          OptionParser.parse(args, switches: @yuki_coder_switch)
-      end
-
-    adapter.submit(args, opts)
+  @requirements ["app.start"]
+  @impl Mix.Task
+  def run(argv) do
+    Kyopuro.submit(argv)
   end
 end
