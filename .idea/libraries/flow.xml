@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="flow" type="mix">
-    <CLASSES />
-    <JAVADOC />
-    <SOURCES>
-      <root url="file://$PROJECT_DIR$/deps/flow/lib" />
-    </SOURCES>
-  </library>
-</component>

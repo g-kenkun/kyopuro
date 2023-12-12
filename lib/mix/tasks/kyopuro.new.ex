@@ -1,56 +1,79 @@
 defmodule Mix.Tasks.Kyopuro.New do
   @moduledoc """
-  Once you have logged in, you can specify a contest to generate modules and tests.
+  コンテスト/問題を指定してモジュールとテストを生成するMixタスクです。本Mixタスクを使用する場合は事前に`mix kyopuro.login`を実行してログインしておくことが必要です。
 
-  ログインが完了したらコンテストを指定してモジュールとテストを生成することができます。
+      $ mix kyopuro.new
 
-    $ mix kyopuro.new ${contest_name}
+  上記Mixタスクを実行するとコンテストを「常設中のコンテスト」「Rated対象から検索」「カテゴリから検索」「キーワードから検索」から検索するよう促されます。
 
-  If you want to generate abc100 modules and tests, here's how it looks like.
+      1. URLを入力
+      2. 常設中のコンテスト
+      3. Rated対象から検索
+      4. カテゴリから検索
+      5. キーワードから検索
 
-  abc100のモジュールとテストを生成する場合は以下のようになります。
+      >
 
-    $ mix kyopuro.new abc100
-
-  In this case, the modules and tests will be generated as follows (if you run it in a hoge project)
-
-  この場合モジュールとテストは以下のように生成されます。(hogeプロジェクトで実行した場合)
+  適当に選択していくとモジュールとテストが生成されます。例としてhogeプロジェクトでABC100のA問題を選択したものを載せます。
 
   ```
-  ┬ lib ─ hoge ─ abc100 ─ ┬ a.ex
-  │                       ├ b.ex
-  │                       ├ c.ex
-  │                       └ d.ex
+  ┬ lib - hoge - abc100 - a.ex
   │
-  └ test ─ hoge_test ─ abc100 ┬ a_test.exs
-                              ├ b_test.exs
-                              ├ c_test.exs
-                              └ d_test.exs
+  └ test - hoge_test - abc100 - a_test.exs
   ```
+
+  モジュールとテストはKyopuroで用意しているテンプレート以外にユーザー側で定義したものを使用することが可能です。
+
+  ```elixir
+  # in config/config.exs
+  import Config
+
+  config :kyopuro,
+    module_template: "priv/templates/module_template.ex",
+    test_template: "priv/templates/test_template.ex"
+  ```
+
+  Kyopuroで用意しているテンプレートは以下のようになっています。
+
+  <!-- tabs-open -->
+
+  ### モジュールのテンプレート
+
+  ```elixir
+  # モジュールのテンプレート
+  defmodule <%= inspect(module) %> do
+    def main do
+
+    end
+  end
+  ```
+
+  ### テストのテンプレート
+
+  ```erlang
+  defmodule <%= inspect(test_module) %> do
+    use ExUnit.Case
+
+    import ExUnit.CaptureIO
+  <%= for test_case <- test_cases do %>
+    test <%= inspect(Keyword.get(test_case, :input)) %> do
+      assert(
+        capture_io([input: <%= inspect(Keyword.get(test_case, :input)) %>, capture_prompt: false], fn ->
+          <%= inspect(module) %>.main()
+        end) == <%= inspect(Keyword.get(test_case, :output)) %>
+      )
+    end<% end %>
+  end
+  ```
+
+  <!-- tabs-close -->
   """
 
   use Mix.Task
 
-  @base_switches [only_module: :boolean, only_test: :boolean]
-  @at_coder_switches @base_switches
-  @yuki_coder_switches @base_switches ++ [contest: :string, problem: :string]
-
-  def run(args) do
-    Mix.Task.run("app.start")
-
-    adapter = Application.get_env(:kyopuro, :adapter, Kyopuro.AtCoder)
-
-    {opts, args, _} =
-      case adapter do
-        Kyopuro.AtCoder ->
-          OptionParser.parse(args, switches: @at_coder_switches)
-
-        Kyopuro.YukiCoder ->
-          OptionParser.parse(args, switches: @yuki_coder_switches)
-      end
-
-      adapter.new(args, opts)
-      |> Enum.map(&Kyopuro.put_binding/1)
-      |> Enum.map(&Kyopuro.generate/1)
+  @requirements ["app.start"]
+  @impl Mix.Task
+  def run(_argv) do
+    Kyopuro.new()
   end
 end
